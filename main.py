@@ -119,7 +119,6 @@ def publish(owner_id, media_id, message, acess_token, group_id):
     )
     response.raise_for_status()
     check_vk_errors(response)
-    print(response.content)
 
 
 def main():
