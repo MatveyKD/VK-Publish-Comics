@@ -17,7 +17,6 @@ def load_image(url, path, payload=None):
 
 
 def check_vk_errors(response):
-    response = response.json()
     if "error" in response:
         raise VK_Error(
             "error_code: {0}, error_message: {1}".format(
@@ -56,8 +55,9 @@ def get_url_to_load(acess_token, group_id):
         headers=headers
     )
     response.raise_for_status()
-    check_vk_errors(response)
-    upload_url = response.json()["response"]["upload_url"]
+    response_data = response.json()
+    check_vk_errors(response_data)
+    upload_url = response_data["response"]["upload_url"]
     return upload_url
 
 
@@ -68,8 +68,8 @@ def load_to_server(image_path, upload_url):
         }
         response = requests.post(upload_url, files=files)
         response.raise_for_status()
-        check_vk_errors(response)
         response_data = response.json()
+        check_vk_errors(response_data)
         comics_server = response_data["server"]
         comics_hash = response_data["hash"]
         comics_photo = response_data["photo"]
@@ -93,8 +93,8 @@ def upload_to_wall(comics_server, comics_hash, comics_photo, acess_token, group_
         headers=headers
     )
     response.raise_for_status()
-    check_vk_errors(response)
     response_data = response.json()
+    check_vk_errors(response_data)
     owner_id = response_data["response"][0]["owner_id"]
     media_id = response_data["response"][0]["id"]
 
@@ -118,42 +118,37 @@ def publish(owner_id, media_id, message, acess_token, group_id):
         headers=headers
     )
     response.raise_for_status()
-    check_vk_errors(response)
+    check_vk_errors(response.json())
 
 
 def main():
-    comics_path = "comics.jpg"
-
-    group_id = int(os.environ['GROUP_ID'])
-    acess_token = os.environ['ACESS_TOKEN']
-
-    # Скачивание комикса
-    message = load_random_comics(comics_path)
-
-
-    # Получение адреса для загрузки фото
-    upload_url = get_url_to_load(acess_token, group_id)
-
-    # Загрузка на сервер
-    comics_server, comics_hash, comics_photo = load_to_server(comics_path, upload_url)
-
-    # Загрузка на стену
-    owner_id, media_id = upload_to_wall(
-        comics_server,
-        comics_hash,
-        comics_photo,
-        acess_token,
-        group_id
-    )
-
-    # Публикация
-    publish(owner_id, media_id, message, acess_token, group_id)
-
-
-if __name__ == "__main__":
     load_dotenv()
 
     try:
-        main()
+        comics_path = "comics.jpg"
+
+        group_id = int(os.environ['GROUP_ID'])
+        acess_token = os.environ['ACESS_TOKEN']
+
+        message = load_random_comics(comics_path)
+
+
+        upload_url = get_url_to_load(acess_token, group_id)
+
+        comics_server, comics_hash, comics_photo = load_to_server(comics_path, upload_url)
+
+        owner_id, media_id = upload_to_wall(
+            comics_server,
+            comics_hash,
+            comics_photo,
+            acess_token,
+            group_id
+        )
+
+        publish(owner_id, media_id, message, acess_token, group_id)
     finally:
         os.remove("comics.jpg")
+
+
+if __name__ == "__main__":
+    main()
